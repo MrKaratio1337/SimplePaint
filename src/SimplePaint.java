@@ -11,6 +11,7 @@ public class SimplePaint extends JFrame {
     private Graphics2D g2d;
     private int prevX, prevY;
     private boolean dragging;
+    private Color currentColor = Color.BLACK;
 
     public SimplePaint(){
         setTitle("Simple Paint");
@@ -20,9 +21,8 @@ public class SimplePaint extends JFrame {
 
         canvas = new BufferedImage(800, 600, BufferedImage.TYPE_INT_RGB);
         g2d = canvas.createGraphics();
-        g2d.setColor(Color.WHITE);
-        g2d.fillRect(0, 0, canvas.getWidth(), canvas.getHeight());
-        g2d.setColor(Color.BLACK);
+        g2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+        clearCanvas();
 
         JPanel panel = new JPanel(){
             protected void paintComponent(Graphics g){
@@ -60,8 +60,35 @@ public class SimplePaint extends JFrame {
             }
         });
 
-        add(panel);
+        JPanel colorPanel = new JPanel();
+        colorPanel.setLayout(new FlowLayout());
+
+        Color[] colors = {Color.BLACK, Color.RED, Color.GREEN, Color.BLUE, Color.YELLOW, Color.ORANGE, Color.PINK, Color.MAGENTA};
+        for(Color color : colors){
+            JButton colorButton = new JButton();
+
+            colorButton.setBackground(color);
+
+            colorButton.setPreferredSize(new Dimension(30, 30));
+
+            colorButton.addActionListener(e -> {
+                currentColor = color;
+                g2d.setColor(currentColor);
+            });
+
+            colorPanel.add(colorButton);
+        }
+
+        setLayout(new BorderLayout());
+        add(colorPanel, BorderLayout.NORTH);
+        add(panel, BorderLayout.CENTER);
         setVisible(true);
+    }
+
+    private void clearCanvas(){
+        g2d.setColor(Color.WHITE);
+        g2d.fillRect(0, 0, canvas.getWidth(), canvas.getHeight());
+        g2d.setColor(currentColor);
     }
 
     public static void main(String[] args){
