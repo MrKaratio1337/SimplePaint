@@ -12,6 +12,7 @@ public class SimplePaint extends JFrame {
     private int prevX, prevY;
     private boolean dragging;
     private Color currentColor = Color.BLACK;
+    private Color currentBackgroundColor = Color.WHITE;
 
     public SimplePaint(){
         setTitle("Simple Paint");
@@ -28,6 +29,11 @@ public class SimplePaint extends JFrame {
             protected void paintComponent(Graphics g){
                 super.paintComponent(g);
                 g.drawImage(canvas, 0, 0, null);
+            }
+
+            @Override
+            public Dimension getPreferredSize() {
+                return new Dimension(canvas.getWidth(), canvas.getHeight());
             }
         };
 
@@ -79,14 +85,33 @@ public class SimplePaint extends JFrame {
             colorPanel.add(colorButton);
         }
 
+        JPanel backgroundColorPanel = new JPanel();
+        backgroundColorPanel.setLayout(new FlowLayout());
+
+        for(Color color : colors){
+            JButton backgroundColorButton = new JButton();
+            backgroundColorButton.setBackground(color);
+
+            backgroundColorButton.setPreferredSize(new Dimension(30, 30));
+
+            backgroundColorButton.addActionListener(e -> {
+                currentBackgroundColor = color;
+                clearCanvas();
+                panel.repaint();
+            });
+
+            backgroundColorPanel.add(backgroundColorButton);
+        }
+
         setLayout(new BorderLayout());
-        add(colorPanel, BorderLayout.NORTH);
+        add(backgroundColorPanel, BorderLayout.SOUTH);
+        add(new JScrollPane(colorPanel), BorderLayout.NORTH);
         add(panel, BorderLayout.CENTER);
         setVisible(true);
     }
 
     private void clearCanvas(){
-        g2d.setColor(Color.WHITE);
+        g2d.setColor(currentBackgroundColor);
         g2d.fillRect(0, 0, canvas.getWidth(), canvas.getHeight());
         g2d.setColor(currentColor);
     }
