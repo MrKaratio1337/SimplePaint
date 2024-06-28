@@ -4,6 +4,8 @@ import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.awt.event.MouseMotionAdapter;
 import java.awt.image.BufferedImage;
+import java.util.LinkedList;
+import java.util.Queue;
 
 public class SimplePaint extends JFrame {
 
@@ -13,6 +15,7 @@ public class SimplePaint extends JFrame {
     private boolean dragging;
     private Color currentColor = Color.BLACK;
     private Color currentBackgroundColor = Color.WHITE;
+    private boolean paintBucketSelected = false;
 
     public SimplePaint(){
         setTitle("Simple Paint");
@@ -25,7 +28,7 @@ public class SimplePaint extends JFrame {
         g2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
         clearCanvas();
 
-        JPanel panel = new JPanel(){
+        JPanel drawPanel = new JPanel(){
             protected void paintComponent(Graphics g){
                 super.paintComponent(g);
                 g.drawImage(canvas, 0, 0, null);
@@ -37,12 +40,22 @@ public class SimplePaint extends JFrame {
             }
         };
 
-        panel.addMouseListener(new MouseAdapter() {
+        drawPanel.addMouseListener(new MouseAdapter() {
             @Override
             public void mousePressed(MouseEvent e) {
-                prevX = e.getX();
-                prevY = e.getY();
-                dragging = true;
+                if(paintBucketSelected){
+                    int x = e.getX();
+                    int y = e.getY();
+                    Color targetColor = new Color(canvas.getRGB(x, y));
+                    if(!targetColor.equals(currentColor)){
+                        floodFill(x, y, targetColor, currentColor);
+                        drawPanel.repaint();
+                    }
+                } else{
+                    prevX = e.getX();
+                    prevY = e.getY();
+                    dragging = true;
+                }
             }
 
             @Override
@@ -51,17 +64,19 @@ public class SimplePaint extends JFrame {
             }
         });
 
-        panel.addMouseMotionListener(new MouseMotionAdapter() {
+        drawPanel.addMouseMotionListener(new MouseMotionAdapter() {
             @Override
             public void mouseDragged(MouseEvent e) {
-                if(dragging){
+                if(!paintBucketSelected && dragging){
                     int x = e.getX();
                     int y = e.getY();
+
+                    g2d.setColor(currentColor);
 
                     g2d.drawLine(prevX, prevY, x, y);
                     prevX = x;
                     prevY = y;
-                    panel.repaint();
+                    drawPanel.repaint();
                 }
             }
         });
@@ -78,8 +93,10 @@ public class SimplePaint extends JFrame {
             colorButton.setPreferredSize(new Dimension(30, 30));
 
             colorButton.addActionListener(e -> {
-                currentColor = color;
-                g2d.setColor(currentColor);
+                if(!paintBucketSelected){
+                    currentColor = color;
+                    g2d.setColor(currentColor);
+                }
             });
 
             colorPanel.add(colorButton);
@@ -97,16 +114,29 @@ public class SimplePaint extends JFrame {
             backgroundColorButton.addActionListener(e -> {
                 currentBackgroundColor = color;
                 clearCanvas();
-                panel.repaint();
+                drawPanel.repaint();
             });
 
             backgroundColorPanel.add(backgroundColorButton);
         }
 
+        JButton paintBucketButton = new JButton("Paint Bucket");
+
+        paintBucketButton.addActionListener(e -> {
+            paintBucketSelected = !paintBucketSelected;
+            if(paintBucketSelected){
+                drawPanel.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+            } else{
+                drawPanel.setCursor(Cursor.getDefaultCursor());
+            }
+        });
+
+        colorPanel.add(paintBucketButton);
+
         setLayout(new BorderLayout());
         add(backgroundColorPanel, BorderLayout.SOUTH);
         add(new JScrollPane(colorPanel), BorderLayout.NORTH);
-        add(panel, BorderLayout.CENTER);
+        add(drawPanel, BorderLayout.CENTER);
         setVisible(true);
     }
 
@@ -114,6 +144,29 @@ public class SimplePaint extends JFrame {
         g2d.setColor(currentBackgroundColor);
         g2d.fillRect(0, 0, canvas.getWidth(), canvas.getHeight());
         g2d.setColor(currentColor);
+    }
+
+    private void floodFill(int x, int y, Color targetColor, Color replacementColor){
+        if(targetColor.equals(replacementColor)) return;
+
+        Queue<Point> queue = new LinkedList<>();
+        queue.add(new Point(x, y));
+
+        while(!queue.isEmpty()){
+            Point point = queue.poll();
+            int px = point.x;
+            int py = point.y;
+
+            if(px < 0 || px >= canvas.getWidth() || py < 0 || py >= canvas.getHeight()) continue;
+            if(!new Color(canvas.getRGB(px, py)).equals(targetColor)) continue;
+
+            canvas.setRGB(px, py, replacementColor.getRGB());
+
+            queue.add(new Point(px + 1, py));
+            queue.add(new Point(px - 1, py));
+            queue.add(new Point(px, py + 1));
+            queue.add(new Point(px, py - 1));
+        }
     }
 
     public static void main(String[] args){
